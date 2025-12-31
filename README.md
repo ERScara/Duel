@@ -32,11 +32,13 @@ Demonstrates resource management and clean handling of graphics objects.
 ## How to Play
 - Use the arrow keys to move your ship.
 
-- Fire bullets to destroy rebel ships.
+- Fire bullets with the spacebar to destroy rebel ships.
+  
+- Restart your ship pressing 'R' key.
 
 - Avoid enemy fire and collisions.
 
-- Defend the base for as long as possible.
+- Defend the base for as long as possible and score as many points as you can!
 
 ## Credits
 Developed by Esteban, a Biotechnology student exploring programming and game development. This project was completed in just a few days as a personal milestone, proving that determination and curiosity can overcome technical barriers.
