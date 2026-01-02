@@ -1,0 +1,3 @@
+﻿duel.obj : error LNK2001: símbolo externo __imp_PlaySoundW sin resolver
+MSVCRT.lib(exe_main.obj) : error LNK2001: símbolo externo main sin resolver
+C:\Users\Esteban\source\repos\NewProjects\Duel\x64\Release\Duel.exe : fatal error LNK1120: 2 externos sin resolver

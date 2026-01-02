@@ -1,9 +1,13 @@
 #pragma comment(lib, "msimg32.lib")
+#pragma comment(lib, "dsound.lib")
 #include "duel.h"
 #include <tchar.h>
 #include <timeapi.h>
 #include <windows.h>
 #include <vector>
+#include <chrono>
+#include <thread>
+#include <dsound.h>
 #include "gameproc.h"
 
 
@@ -21,6 +25,8 @@ struct Enemy {
 	int x, y;
 	int dx, dy;
 	bool alive;
+	bool exploding;
+	int explosionTimer;
 };
 Enemy enemy = { 200, 50, 3, 0, true };
 
@@ -53,7 +59,6 @@ BOOL                 g_bAsync;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 	g_hInst = hInstance;
 
@@ -69,14 +74,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 	int posX = (screenWidth - winWidth) / 2;
 	int posY = (screenHeight - winHeight) / 2;
 
-    hShipBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\ship.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+    hShipBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\lime_ship.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hShipBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
 		wsprintf(buf, TEXT("Ship could not be loaded. Error %lu"), err);
 		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
 	}
-	hEnemyBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\enemy.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	hEnemyBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\enemy4.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hShipBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
@@ -101,6 +106,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 	);
 
 	ShowWindow(g_hwndMain, nCmdShow);
+
+	
+	
 	MSG msg = {};
 	while (TRUE) {
 		if (g_bIsActive) {
@@ -121,20 +129,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 					if (upPressed)   shipY -= 5;
 					if (downPressed) shipY += 5;
 				}
-				if (spacePressed) {
+				if (alive && spacePressed) {
 					BITMAP bm;
 					GetObject(hShipBmp, sizeof(bm), &bm);
 					int bulletX = shipX + bm.bmWidth / 13;
 					int bulletY = shipY;
-					if (upPressed && leftPressed) bullets.push_back({ bulletX, bulletY, -5, 0 });
-					else if (upPressed && rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
-					else if (downPressed && rightPressed) bullets.push_back({ bulletX, bulletY, -5, 0 });
-					else if (downPressed && leftPressed) bullets.push_back({ bulletX, bulletY , 0, -5 });
-					else if (upPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
-					else if (downPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
-					else if (rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
-					else if (leftPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
-					else bullets.push_back({ bulletX, bulletY, 0, -5 });
+					if (upPressed && leftPressed) bullets.push_back({ bulletX, bulletY, -5, 0});
+					else if (upPressed && rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
+					else if (downPressed && rightPressed) bullets.push_back({ bulletX, bulletY, -5, 0});
+					else if (downPressed && leftPressed) bullets.push_back({ bulletX, bulletY , 0, -5});
+					else if (upPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
+					else if (downPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
+					else if (rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
+					else if (leftPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
+					else bullets.push_back({ bulletX, bulletY, 0, -5});
 				}
 				for (auto& b : bullets) { b.x += b.dx; b.y += b.dy; }
 				bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return b.y < 0; }), bullets.end());
@@ -205,12 +213,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					e.y += e.dy;
 					if (rand() % 100 == 0) {
 						enemybullets.push_back({ e.x + 32, e.y + 64, 0, 5});
+						if(alive) {
+						  PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
+						}
 					}
 					if (rand() % 10 == 0) {
 						e.dx = (rand() % 2 == 0 ? 2 : -2);
 						e.dx = -e.dx;
 					}
-					if (e.x < 0 || e.x > 1800 - 64) {
+					if (e.x < 0 || e.x > 1787 - 64) {
 						e.dx = -e.dx;
 					}
 				}
@@ -235,8 +246,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				if (shipX < 0) {
 					shipX = 0;
 				}
-				if (shipX > 1800 - shipWidth) {
-					shipX = 1800 - shipWidth;
+				if (shipX > 1787 - shipWidth) {
+					shipX = 1787 - shipWidth;
 				}
 			}	
 			enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](Enemy& e) { return !e.alive || e.y > 1000; }), enemies.end());
@@ -266,7 +277,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (wParam == VK_RIGHT) rightPressed = true;
 		if (wParam == VK_UP) upPressed = true;
 		if (wParam == VK_DOWN) downPressed = true;
-		if (wParam == VK_SPACE) spacePressed = true;
+		if (wParam == VK_SPACE) { PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC); spacePressed = true; };
 		return 0;
 	case WM_KEYUP:
 		if (!alive) return 0;
@@ -282,7 +293,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		RECT rect;
 		GetClientRect(hwnd, &rect);
 
-		HBRUSH hBrush = CreateSolidBrush(RGB(0, 0, 255));
+		HBRUSH hBrush = CreateSolidBrush(RGB(181, 101, 29));
 		FillRect(hdc, &rect, hBrush);
 		DeleteObject(hBrush);
 
@@ -292,11 +303,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (!alive && hExplosionBmp) {
 			DrawTransparentBitmap(hdc, hExplosionBmp, shipX, shipY, 64, 64);
 		}
-		if (!alive) {
-			bullets.clear();
-		}
 
-		HBRUSH bulletBrush = CreateSolidBrush(RGB(0, 255, 0));
+		HBRUSH bulletBrush = CreateSolidBrush(RGB(255, 255, 0));
 		HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, bulletBrush);
 
 		for (auto it = bullets.begin(); it != bullets.end();) {
@@ -343,10 +351,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		}
 
 		for (auto& e : enemies) {
-			if (!e.alive) continue;
 			RECT enemyRect = { e.x, e.y, e.x + 64, e.y + 64 };
 			if (e.alive) {
 				DrawTransparentBitmap(hdc, hEnemyBmp, e.x, e.y, 64, 64);
+			}
+			else if (!e.alive) {
+				DrawTransparentBitmap(hdc, hExplosionBmp, e.x, e.y, 64, 64);
+				this_thread::sleep_for(chrono::milliseconds(50));
+				e.explosionTimer--;
+				if (e.explosionTimer <= 0) { e.exploding = false; }
 			}
 			for (auto it = bullets.begin(); it != bullets.end();) {
 				Rectangle(hdc, it->x - 2, it->y - 10, it->x + 2, it->y);
@@ -355,10 +368,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				RECT Intersect;
 				if (IntersectRect(&Intersect, &enemyRECT, &bulletRECT)) {
 					e.alive = false;
+					e.exploding = true;
+					e.explosionTimer = 20;
 					g_score += 100;
 					leftPressed = rightPressed = upPressed = downPressed = false; 
                     it = bullets.erase(it);
-					PlaySound(TEXT("bangbang.wav"), NULL, SND_FILENAME | SND_ASYNC);
+					PlaySound(TEXT("p_bang.wav"), NULL, SND_FILENAME | SND_ASYNC);
+					if (g_score % 5000 == 0) {
+						g_lives++;
+						e.exploding = true;
+						e.explosionTimer = 20;
+						PlaySound(TEXT("bounce.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOWAIT);
+					}
 				}
 				else {
 					++it;
@@ -389,12 +410,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 500, 400, TEXT("GAME OVER"), lstrlen(TEXT("GAME OVER")));
-
+			TextOut(hdc, 550, 400, TEXT("GAME OVER"), lstrlen(TEXT("GAME OVER")));
+			if (hdc) {
+				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
+			}
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-
 		SelectObject(hdc, oldBrush);
 		DeleteObject(bulletBrush);
 
@@ -407,8 +429,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
-
 
 
 VOID ShowError(int iStrID)
