@@ -7,6 +7,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <fstream>
 #include <dsound.h>
 #include "gameproc.h"
 
@@ -48,10 +49,12 @@ HBITMAP                 hExplosionBmp;
 HBITMAP                     hEnemyBmp;
 HBITMAP                hBackgroundBmp;
 HBITMAP                   hBackground;
+INT                       g_highscore;
 BOOL               g_bIsActive = true;
 HKEY                g_hDuelKey = NULL;
 DWORD                   g_dwFrameTime;
 BOOL                   g_bUseProtocol;
+BOOL                 g_Paused = false;
 BOOL                     alive = true;
 BOOL                      g_bReliable;
 BOOL leftPressed = false, rightPressed = false, spacePressed = false, upPressed = false, downPressed = false;
@@ -59,7 +62,23 @@ BOOL                 g_bAsync;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
+INT loadHighScore() {
+	ifstream file("best.dat");
+	int g_score = 0;
+	if (file.is_open()) {
+		file >> g_score;
+	}
+	return g_score;
+}
+
+VOID saveHighScore(int g_score) {
+	ofstream file("best.dat");
+	if (file.is_open()) {
+		file << g_score;
+	}
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	g_hInst = hInstance;
 
 	WNDCLASS wc = {};
@@ -74,15 +93,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 	int posX = (screenWidth - winWidth) / 2;
 	int posY = (screenHeight - winHeight) / 2;
 
-    hShipBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\lime_ship.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+    hShipBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\gray_ship.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hShipBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
 		wsprintf(buf, TEXT("Ship could not be loaded. Error %lu"), err);
 		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
 	}
-	hEnemyBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\enemy4.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	if (!hShipBmp) {
+	hEnemyBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\ENE2.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	if (!hEnemyBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
 		wsprintf(buf, TEXT("Ship could not be loaded. Error %lu"), err);
@@ -95,6 +114,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 		wsprintf(buf, TEXT("Explosion could not be loaded. Error %lu"), err);
 		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
 	}
+	hBackgroundBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\desert.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	if (!hBackgroundBmp) {
+		DWORD err = GetLastError();
+		TCHAR buf[256];
+		wsprintf(buf, TEXT("Explosion could not be loaded. Error %lu"), err);
+		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
+	}
+
 	g_hwndMain = CreateWindowEx(
 		0,
 		wc.lpszClassName,
@@ -106,9 +133,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 	);
 
 	ShowWindow(g_hwndMain, nCmdShow);
-
-	
-	
 	MSG msg = {};
 	while (TRUE) {
 		if (g_bIsActive) {
@@ -123,16 +147,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 				upPressed = (GetAsyncKeyState(VK_UP) & 0x8000) != 0;
 				downPressed = (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0;
 				spacePressed = (GetAsyncKeyState(VK_SPACE) & 0x8000) != 0;
-				if (alive) {
+				if (alive && !g_Paused) {
 					if (leftPressed) shipX -= 5;
 					if (rightPressed) shipX += 5;
 					if (upPressed)   shipY -= 5;
 					if (downPressed) shipY += 5;
+					if (g_Paused && spacePressed) {
+						if (leftPressed) shipX -= 0;
+						if (rightPressed) shipX += 0;
+						if (upPressed)   shipY -= 0;
+						if (downPressed) shipY += 0;
+					}
 				}
-				if (alive && spacePressed) {
+				/*if (alive && spacePressed) {
 					BITMAP bm;
 					GetObject(hShipBmp, sizeof(bm), &bm);
-					int bulletX = shipX + bm.bmWidth / 13;
+					int bulletX = shipX + bm.bmWidth / 11;
 					int bulletY = shipY;
 					if (upPressed && leftPressed) bullets.push_back({ bulletX, bulletY, -5, 0});
 					else if (upPressed && rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
@@ -144,7 +174,40 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
 					else if (leftPressed) bullets.push_back({ bulletX, bulletY, 0, -5});
 					else bullets.push_back({ bulletX, bulletY, 0, -5});
 				}
+				if (alive && spacePressed) {
+					BITMAP bm;
+					GetObject(hShipBmp, sizeof(bm), &bm);
+					int bulletX = shipX + bm.bmWidth / 14;
+					int bulletY = shipY;
+					if (upPressed && leftPressed) bullets.push_back({ bulletX, bulletY, -5, 0 });
+					else if (upPressed && rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (downPressed && rightPressed) bullets.push_back({ bulletX, bulletY, -5, 0 });
+					else if (downPressed && leftPressed) bullets.push_back({ bulletX, bulletY , 0, -5 });
+					else if (upPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (downPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (leftPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else bullets.push_back({ bulletX, bulletY, 0, -5 });
+				}*/
+				if (alive && spacePressed) {
+					BITMAP bm;
+					GetObject(hShipBmp, sizeof(bm), &bm);
+					int bulletX = shipX + bm.bmWidth / 13;
+					int bulletY = shipY;
+					if (upPressed && leftPressed) bullets.push_back({ bulletX, bulletY, -5, 0 });
+					else if (upPressed && rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (downPressed && rightPressed) bullets.push_back({ bulletX, bulletY, -5, 0 });
+					else if (downPressed && leftPressed) bullets.push_back({ bulletX, bulletY , 0, -5 });
+					else if (upPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (downPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (rightPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (leftPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
+					else if (g_Paused && spacePressed) bullets.push_back({ });
+					else bullets.push_back({ bulletX, bulletY, 0, -5 });
+
+				}
 				for (auto& b : bullets) { b.x += b.dx; b.y += b.dy; }
+				if (g_Paused) { for (auto& b : bullets) { b.y -= b.dy; b.x -= b.dx; } }
 				bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return b.y < 0; }), bullets.end());
 				InvalidateRect(g_hwndMain, NULL, TRUE);
 				Sleep(30);
@@ -180,10 +243,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTimer(hwnd, 1, 30, NULL);
 		SetTimer(hwnd, 2, 2000, NULL);
 		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 60, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
-		NULL);
+			NULL);
+		g_highscore = loadHighScore();
 		break;
 	}
-	case WM_COMMAND: 
+	case WM_COMMAND:
 		if (LOWORD(wParam) == 1) {
 			alive = true;
 			g_score = 0;
@@ -191,7 +255,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			bullets.clear();
 			enemies.clear();
 			enemybullets.clear();
-			InvalidateRect(hwnd, NULL, TRUE);
+		    InvalidateRect(hwnd, NULL, TRUE);
 		}
 		break;
 	case WM_TIMER: {
@@ -200,6 +264,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		int shipWidth = bmShip.bmWidth;
 		int shipHeight = bmShip.bmHeight;
 		if ( wParam == 1) {
+			if (g_Paused) return 0;
 			if (alive)
 			{
 				if (leftPressed)  shipX -= 5;
@@ -207,12 +272,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				if (upPressed)    shipY -= 5;
 				if (downPressed)  shipY += 5;
 			}
+			for (auto& b : bullets) {
+				b.y -= b.dy;
+			}
+			for (auto& eb : enemybullets) {
+				eb.y += eb.dy;
+			}
 			for (auto& e : enemies) {
 				if (e.alive) {
 					e.x += e.dx;
 					e.y += e.dy;
 					if (rand() % 100 == 0) {
-						enemybullets.push_back({ e.x + 32, e.y + 64, 0, 5});
+						enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5});
+						enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
+						/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
 						if(alive) {
 						  PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 						}
@@ -221,8 +294,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						e.dx = (rand() % 2 == 0 ? 2 : -2);
 						e.dx = -e.dx;
 					}
-					if (e.x < 0 || e.x > 1787 - 64) {
+					if (e.x < 0 || e.x > 1787 - shipWidth) {
 						e.dx = -e.dx;
+					}
+				}
+				if (e.exploding) {
+					e.explosionTimer--;
+					if (e.explosionTimer <= 0) {
+						e.exploding = false;
 					}
 				}
 				if (alive) {
@@ -237,8 +316,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						InvalidateRect(hwnd, NULL, TRUE);
 					}
 				}
-				if (shipY > 1150 - shipHeight) {
-					shipY = 1150 - shipHeight;
+				if (shipY > 1300 /*1150*/ /*970*/ - shipHeight) {
+					shipY = 1300 /*1150*/ /*970*/ - shipHeight;
 				}
 				if (shipY < 0) {
 					shipY = 0;
@@ -249,7 +328,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				if (shipX > 1787 - shipWidth) {
 					shipX = 1787 - shipWidth;
 				}
-			}	
+			}
 			enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](Enemy& e) { return !e.alive || e.y > 1000; }), enemies.end());
 			InvalidateRect(hwnd, NULL, TRUE);
 		}
@@ -271,8 +350,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		PostQuitMessage(0);
 		return 0;
 	case WM_KEYDOWN:
-		if (wParam == 'R' && g_lives > 0) { alive = true; g_lives--; InvalidateRect(hwnd, NULL, TRUE); return 0; };
+		if (wParam == 'R' && g_lives > 0 && !alive) { alive = true; g_lives--; InvalidateRect(hwnd, NULL, TRUE); return 0; };	
+		if (wParam == 'P') { g_Paused = !g_Paused; if (g_Paused) { leftPressed = rightPressed = upPressed = downPressed = false; } InvalidateRect(hwnd, NULL, TRUE); };
 		if (!alive) return 0;
+		if (g_Paused) return 0;
 		if (wParam == VK_LEFT) leftPressed = true;
 		if (wParam == VK_RIGHT) rightPressed = true;
 		if (wParam == VK_UP) upPressed = true;
@@ -280,22 +361,28 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (wParam == VK_SPACE) { PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC); spacePressed = true; };
 		return 0;
 	case WM_KEYUP:
-		if (!alive) return 0;
+		if (!alive || g_Paused) return 0;
 		if (wParam == VK_LEFT) leftPressed = false;
 		if (wParam == VK_RIGHT) rightPressed = false;
 		if (wParam == VK_UP) upPressed = false;
 		if (wParam == VK_DOWN) downPressed = false;
 		if (wParam == VK_SPACE) spacePressed = false;
 		return 0;
+	case WM_SIZE:
+		InvalidateRect(hwnd, NULL, TRUE);
+		break;
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
 		RECT rect;
 		GetClientRect(hwnd, &rect);
-
-		HBRUSH hBrush = CreateSolidBrush(RGB(181, 101, 29));
-		FillRect(hdc, &rect, hBrush);
-		DeleteObject(hBrush);
+		int width = 1600 - rect.left;
+		int height = 1789 - rect.top;
+		
+		HDC hdcMem = CreateCompatibleDC(hdc);
+		SelectObject(hdcMem, hBackgroundBmp);
+		BitBlt(hdc, 0, 0, width, height, hdcMem, 0, 0, SRCCOPY);
+		DeleteDC(hdcMem);
 
 		if (hShipBmp && alive) {
 			DrawTransparentBitmap(hdc, hShipBmp, shipX, shipY, 64, 64);
@@ -303,10 +390,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (!alive && hExplosionBmp) {
 			DrawTransparentBitmap(hdc, hExplosionBmp, shipX, shipY, 64, 64);
 		}
-
-		HBRUSH bulletBrush = CreateSolidBrush(RGB(255, 255, 0));
+		
+		HBRUSH bulletBrush = CreateSolidBrush(RGB(0, 255, 0));
 		HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, bulletBrush);
-
+	
 		for (auto it = bullets.begin(); it != bullets.end();) {
 			Rectangle(hdc, it->x - 2, it->y - 10, it->x + 2, it->y);
 			it->x += it->dx;
@@ -315,11 +402,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			RECT shipRECT = { shipX, shipY, shipX + 64, shipY + 64 };
 			RECT Intersect;
 			if (IntersectRect(&Intersect, &shipRECT, &bulletRECT)) {
-				if(alive) {
-					alive = false; 
+				if (alive) {
+					alive = false;
 					leftPressed = rightPressed = upPressed = downPressed = false;
 					it = bullets.erase(it);
-					PlaySound(TEXT("lboom.wav"), NULL, SND_FILENAME | SND_ASYNC); 
+					PlaySound(TEXT("lboom.wav"), NULL, SND_FILENAME | SND_ASYNC);
 					continue;
 				}
 			}
@@ -330,7 +417,94 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				++it;
 			}
 		}
+		for (auto& e : enemies) {
+			RECT enemyRect = { e.x, e.y, e.x + 64, e.y + 64 };
+			DrawTransparentBitmap(hdc, hEnemyBmp, e.x, e.y, 64, 64);
+			if (e.alive) {
+				for (auto it = bullets.begin(); it != bullets.end();) {
+					RECT bulletRECT = { it->x - 2, it->y - 10, it->x + 2, it->y };
+					RECT enemyRECT = { e.x, e.y, e.x + 64, e.y + 64 };
+					RECT Intersect;
+					if (IntersectRect(&Intersect, &enemyRECT, &bulletRECT)) {
+						e.alive = false;
+						g_score += 100;
+						
+						PlaySound(TEXT("p_bang.wav"), NULL, SND_FILENAME | SND_ASYNC);
+						if (g_score % 5000 == 0) {
+							g_lives++;
+							PlaySound(TEXT("bounce.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOWAIT);
+						}
+						it = bullets.erase(it);
+					}
+					else {
+						++it;
+					}
+				}
+			}
+			else if (e.exploding) {
+				DrawTransparentBitmap(hdc, hExplosionBmp, e.x, e.y, 64, 64);
+				e.explosionTimer--;
+				if (e.explosionTimer <= 0) { e.exploding = false; }
+			}
+		}
+		if (g_Paused) {  for (auto& b : bullets) { b.y -= b.dy; b.x -= b.dx; } }
+	
+		HBRUSH enemybulletBrush = CreateSolidBrush(RGB(0, 255, 0));
+		HBRUSH oldenemyBrush = (HBRUSH)SelectObject(hdc, enemybulletBrush);
+	
+		for (const auto& b : enemybullets) {
+			Rectangle(hdc, b.x - 2, b.y - 10, b.x + 2, b.y);
+		}
+		TCHAR scoreBuf[32];
+		wsprintf(scoreBuf, TEXT("Points: %d"), g_score);
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 10, scoreBuf, lstrlen(scoreBuf));
+		wsprintf(scoreBuf, TEXT("Lives: %d"), g_lives);
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
+		wsprintf(scoreBuf, TEXT("Best: %d"), g_highscore);
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 40, scoreBuf, lstrlen(scoreBuf));
+		if (g_lives == 0 && !alive) {
+			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 0));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 550, 400, TEXT("GAME OVER"), lstrlen(TEXT("GAME OVER")));
+			if (g_score > g_highscore) {
+				g_highscore = g_score;
+				saveHighScore(g_highscore);
+			}
+			if (hdc) {
+				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
+			}
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_score % 5000 == 0 && g_score != 0) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(0, 255, 0));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_Paused) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(0, 255, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("GAME PAUSED"), lstrlen(TEXT("GAME PAUSED")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
 		for (auto it = enemybullets.begin(); it != enemybullets.end(); ) {
+			if (g_Paused) return 0;
 			it->x += it->dx;
 			it->y += it->dy;
 			RECT bulletRECT = { it->x - 2,it->y - 10, it->x + 2, it->y };
@@ -349,74 +523,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				++it;
 			}
 		}
-
-		for (auto& e : enemies) {
-			RECT enemyRect = { e.x, e.y, e.x + 64, e.y + 64 };
-			if (e.alive) {
-				DrawTransparentBitmap(hdc, hEnemyBmp, e.x, e.y, 64, 64);
-			}
-			else if (!e.alive) {
-				DrawTransparentBitmap(hdc, hExplosionBmp, e.x, e.y, 64, 64);
-				this_thread::sleep_for(chrono::milliseconds(50));
-				e.explosionTimer--;
-				if (e.explosionTimer <= 0) { e.exploding = false; }
-			}
-			for (auto it = bullets.begin(); it != bullets.end();) {
-				Rectangle(hdc, it->x - 2, it->y - 10, it->x + 2, it->y);
-				RECT bulletRECT = { it->x - 2, it->y - 10, it->x + 2, it->y };
-				RECT enemyRECT = { e.x, e.y, e.x + 64, e.y + 64 };
-				RECT Intersect;
-				if (IntersectRect(&Intersect, &enemyRECT, &bulletRECT)) {
-					e.alive = false;
-					e.exploding = true;
-					e.explosionTimer = 20;
-					g_score += 100;
-					leftPressed = rightPressed = upPressed = downPressed = false; 
-                    it = bullets.erase(it);
-					PlaySound(TEXT("p_bang.wav"), NULL, SND_FILENAME | SND_ASYNC);
-					if (g_score % 5000 == 0) {
-						g_lives++;
-						e.exploding = true;
-						e.explosionTimer = 20;
-						PlaySound(TEXT("bounce.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOWAIT);
-					}
-				}
-				else {
-					++it;
-				}
- 			}
-		}
-
-		HBRUSH enemybulletBrush = CreateSolidBrush(RGB(0, 255, 0));
-		HBRUSH oldenemyBrush = (HBRUSH)SelectObject(hdc, enemybulletBrush);
-
-		for (auto& b : enemybullets) {
-			Rectangle(hdc, b.x - 2, b.y - 10, b.x + 2, b.y);
-		}
-
-		TCHAR scoreBuf[32];
-		wsprintf(scoreBuf, TEXT("Points: %d"), g_score);
-		SetTextColor(hdc, RGB(0, 255, 0));
-		SetBkMode(hdc, TRANSPARENT);
-		TextOut(hdc, 10, 10, scoreBuf, lstrlen(scoreBuf));
-		wsprintf(scoreBuf, TEXT("Lives: %d"), g_lives);
-		SetTextColor(hdc, RGB(0, 255, 0));
-		SetBkMode(hdc, TRANSPARENT);
-		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
-
-		if (g_lives == 0 && !alive) {
-			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
-		
-			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
-			SetTextColor(hdc, RGB(255, 0, 0));
-			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 550, 400, TEXT("GAME OVER"), lstrlen(TEXT("GAME OVER")));
-			if (hdc) {
-				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
-			}
-			SelectObject(hdc, oldFont);
-			DeleteObject(hFont);
-		}
+	
 		SelectObject(hdc, oldBrush);
 		DeleteObject(bulletBrush);
 
