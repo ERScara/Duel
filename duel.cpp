@@ -464,7 +464,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
-		wsprintf(scoreBuf, TEXT("Number of enemies killed: %d"), g_score / enemies_killed);
+		wsprintf(scoreBuf, TEXT("Number of enemy ships destroyed: %d"), g_score / enemies_killed);
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 40, scoreBuf, lstrlen(scoreBuf));
@@ -472,7 +472,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 55, scoreBuf, lstrlen(scoreBuf));
-		
 		
 		if (g_lives == 0 && !alive) {
 			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
@@ -599,3 +598,4 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
+
