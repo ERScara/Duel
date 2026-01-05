@@ -38,10 +38,11 @@ HWND                       g_hwndMain;
 int shipX = 400,  shipY = 500;
 int g_score = 0;
 int g_lives = 5;
+int enemies_killed = 100;
 int screenWidth = GetSystemMetrics(SM_CXSCREEN);
 int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 std::vector<Bullet>           bullets;
-std::vector<EnemyBullet> enemybullets;
+std::vector<EnemyBullet>   enemybullets;
 std::vector<Enemy>            enemies;
 BOOL                    g_bHostPlayer;
 HBITMAP                      hShipBmp;
@@ -204,7 +205,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine
 					else if (leftPressed) bullets.push_back({ bulletX, bulletY, 0, -5 });
 					else if (g_Paused && spacePressed) bullets.push_back({ });
 					else bullets.push_back({ bulletX, bulletY, 0, -5 });
-
 				}
 				for (auto& b : bullets) { b.x += b.dx; b.y += b.dy; }
 				if (g_Paused) { for (auto& b : bullets) { b.y -= b.dy; b.x -= b.dx; } }
@@ -242,7 +242,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_CREATE: {
 		SetTimer(hwnd, 1, 30, NULL);
 		SetTimer(hwnd, 2, 2000, NULL);
-		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 60, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
+		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 80, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
 			NULL);
 		g_highscore = loadHighScore();
 		break;
@@ -283,7 +283,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					e.x += e.dx;
 					e.y += e.dy;
 					if (rand() % 100 == 0) {
-						enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5});
+						enemybullets.push_back({e.x + 30, e.y + 64, 0, 5});
 						enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 						/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
 						if(alive) {
@@ -350,8 +350,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		PostQuitMessage(0);
 		return 0;
 	case WM_KEYDOWN:
-		if (wParam == 'R' && g_lives > 0 && !alive) { alive = true; g_lives--; InvalidateRect(hwnd, NULL, TRUE); return 0; };	
 		if (wParam == 'P') { g_Paused = !g_Paused; if (g_Paused) { leftPressed = rightPressed = upPressed = downPressed = false; } InvalidateRect(hwnd, NULL, TRUE); };
+		if (wParam == 'R' && g_lives > 0 && !alive && !g_Paused) { alive = true; g_lives--; InvalidateRect(hwnd, NULL, TRUE); return 0; };	
 		if (!alive) return 0;
 		if (g_Paused) return 0;
 		if (wParam == VK_LEFT) leftPressed = true;
@@ -456,18 +456,24 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			Rectangle(hdc, b.x - 2, b.y - 10, b.x + 2, b.y);
 		}
 		TCHAR scoreBuf[32];
-		wsprintf(scoreBuf, TEXT("Points: %d"), g_score);
-		SetTextColor(hdc, RGB(0, 255, 0));
-		SetBkMode(hdc, TRANSPARENT);
-		TextOut(hdc, 10, 10, scoreBuf, lstrlen(scoreBuf));
 		wsprintf(scoreBuf, TEXT("Lives: %d"), g_lives);
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 10, scoreBuf, lstrlen(scoreBuf));
+		wsprintf(scoreBuf, TEXT("Points: %d"), g_score);
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
-		wsprintf(scoreBuf, TEXT("Best: %d"), g_highscore);
+		wsprintf(scoreBuf, TEXT("Number of enemies killed: %d"), g_score / enemies_killed);
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 40, scoreBuf, lstrlen(scoreBuf));
+		wsprintf(scoreBuf, TEXT("Best: %d"), g_highscore);
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 55, scoreBuf, lstrlen(scoreBuf));
+		
+		
 		if (g_lives == 0 && !alive) {
 			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
