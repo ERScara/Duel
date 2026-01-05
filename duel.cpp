@@ -463,7 +463,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
-		wsprintf(scoreBuf, TEXT("Number of ships destroyed: %d"), g_score / enemies_killed);
+		wsprintf(scoreBuf, TEXT("Number of enemies destroyed: %d"), g_score / enemies_killed);
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 40, scoreBuf, lstrlen(scoreBuf));
@@ -597,3 +597,4 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
+
