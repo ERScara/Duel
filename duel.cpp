@@ -463,7 +463,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
-		wsprintf(scoreBuf, TEXT("Number of enemies destroyed: %d"), g_score / enemies_killed);
+		wsprintf(scoreBuf, TEXT("No. of ships destroyed: %d"), g_score / enemies_killed);
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 40, scoreBuf, lstrlen(scoreBuf));
@@ -482,6 +482,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				g_highscore = g_score;
 				saveHighScore(g_highscore);
 			}
+			if (g_score == 100000) {
+				SetTextColor(hdc, RGB(0, 255, 0));
+				SetBkMode(hdc, TRANSPARENT);
+				TextOut(hdc, 550, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
+				if (hdc) {
+					PlaySound(TEXT("level.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
+				}
+				g_score = g_highscore;
+				saveHighScore(g_highscore);
+				chrono::milliseconds duration(5000);
+				this_thread::sleep_for(duration);
+				return 0;
+			}
 			if (hdc) {
 				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 			}
@@ -494,7 +507,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 650, 400, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
+			TextOut(hdc, 650, 500, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
@@ -597,4 +610,3 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
-
