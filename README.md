@@ -34,9 +34,13 @@ Demonstrates resource management and clean handling of graphics objects.
 
 - Fire bullets with the spacebar to destroy rebel ships.
   
-- Restart your ship pressing 'R' key.
+- Restart your ship by pressing the 'R' key.
+
+- Pause and resume game by pressing the 'P' key.
 
 - Avoid enemy fire and collisions.
+
+- Counter of enemy ships destroyed.
 
 - Defend the base for as long as possible and score as many points as you can!
 
