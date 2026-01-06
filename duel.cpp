@@ -482,28 +482,30 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				g_highscore = g_score;
 				saveHighScore(g_highscore);
 			}
-			if (g_score == 100000) {
-				SetTextColor(hdc, RGB(0, 255, 0));
-				SetBkMode(hdc, TRANSPARENT);
-				TextOut(hdc, 550, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
-				if (hdc) {
-					PlaySound(TEXT("level.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
-				}
-				g_score = g_highscore;
-				saveHighScore(g_highscore);
-				chrono::milliseconds duration(5000);
-				this_thread::sleep_for(duration);
-				return 0;
-			}
 			if (hdc) {
 				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 			}
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
+		if (g_score == 120000 || g_score > 120000) {
+			HFONT hFont = CreateFont(40, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(0, 255, 0));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 630, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
+			enemies.clear();
+			if (hdc) {
+				PlaySound(TEXT("level.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
+			}
+			if (g_score > g_highscore && g_score == 120000) {
+				g_highscore = g_score;
+				saveHighScore(g_highscore);
+			}
+			return 0;
+		}
 		if (g_score % 5000 == 0 && g_score != 0) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
-
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
@@ -520,6 +522,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
+	
 		for (auto it = enemybullets.begin(); it != enemybullets.end(); ) {
 			if (g_Paused) return 0;
 			it->x += it->dx;
