@@ -488,12 +488,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score == 120000 || g_score > 120000) {
+		if (g_score >= 120000) {
 			HFONT hFont = CreateFont(40, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 630, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
+			TextOut(hdc, 600, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
 			enemies.clear();
 			if (hdc) {
 				PlaySound(TEXT("level.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
@@ -613,3 +613,4 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
+
