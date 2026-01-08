@@ -262,7 +262,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		GetObject(hShipBmp, sizeof(bmShip), &bmShip);
 		int shipWidth = bmShip.bmWidth;
 		int shipHeight = bmShip.bmHeight;
-		if ( wParam == 1) {
+		if (wParam == 1) {
 			if (g_Paused) return 0;
 			if (alive)
 			{
@@ -279,9 +279,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			for (auto& e : enemies) {
 				if (e.alive) {
+					RECT enemyRECT = { e.x, e.y, e.x + 64, e.y + 64 };
 					e.x += e.dx;
 					e.y += e.dy;
-					if (rand() % 100 == 0) {
+					if (rand() % 120 == 0) {
 						enemybullets.push_back({e.x + 30, e.y + 64, 0, 5});
 						enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 						/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
@@ -289,18 +290,89 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						  PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 						}
 					}
-					if (rand() % 10 == 0) {
-						e.dx = (rand() % 2 == 0 ? 2 : -2);
-						e.dx = -e.dx;
-					}
 					if (e.x < 0 || e.x > 1787 - shipWidth) {
 						e.dx = -e.dx;
+					}
+					if (g_score >= 6000) {
+						e.dy += 0.2;
+						if (rand() % 10 == 0) {
+							e.dx = (rand() % 2 == 0 ? 2 : -2);
+							e.dx = -e.dx;
+							e.dy = (rand() % 2 == 0 ? 2 : -2);
+							e.dy = -e.dy;
+						}
+					}
+					if (g_score >= 8000) {
+						e.dy += 0.4;
+						if (rand() % 100 == 0) {
+							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
+							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
+							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
+							if (alive) {
+								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
+							}
+						}
+					}
+					if (g_score >= 10000) {
+						e.dy += 0.5;
+						if (rand() % 95 == 0) {
+							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
+							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
+							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
+							if (alive) {
+								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
+							}
+						}
+					}
+					if (g_score >= 20000) {
+						e.dy += 0.6;
+						if (rand() % 80 == 0) {
+							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
+							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
+							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
+							if (alive) {
+								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
+							}
+						}
+					}
+					if (g_score >= 50000) {
+						e.dy += 0.7;
+						if (rand() % 75 == 0) {
+							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
+							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
+							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
+							if (alive) {
+								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
+							}
+						}
+					}
+					if (g_score >= 100000) {
+						e.dy += 0.8;
+						if (rand() % 60 == 0) {
+							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
+							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
+							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
+							if (alive) {
+								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
+							}
+						}
+					}
+					if (e.alive) {
+						RECT enemyRECT = { e.x, e.y, e.x + 64, e.y + 64 };
+						RECT Intersect;
+						if (IntersectRect(&Intersect, &enemyRECT, &enemyRECT)) {
+							e.alive = true;
+							InvalidateRect(hwnd, NULL, TRUE);
+						}
 					}
 				}
 				if (e.exploding) {
 					e.explosionTimer--;
 					if (e.explosionTimer <= 0) {
 						e.exploding = false;
+					}
+					else if (e.explosionTimer > 0) {
+						e.exploding = true;
 					}
 				}
 				if (alive) {
@@ -427,13 +499,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					if (IntersectRect(&Intersect, &enemyRECT, &bulletRECT)) {
 						e.alive = false;
 						g_score += 100;
-						
+						it = bullets.erase(it);
 						PlaySound(TEXT("p_bang.wav"), NULL, SND_FILENAME | SND_ASYNC);
 						if (g_score % 5000 == 0) {
 							g_lives++;
 							PlaySound(TEXT("bounce.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOWAIT);
 						}
-						it = bullets.erase(it);
 					}
 					else {
 						++it;
@@ -494,22 +565,78 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
 			TextOut(hdc, 600, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
+			enemybullets.clear();
+			bullets.clear();
 			enemies.clear();
 			if (hdc) {
 				PlaySound(TEXT("level.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 			}
-			if (g_score > g_highscore && g_score == 120000) {
+			if (g_score > g_highscore) {
 				g_highscore = g_score;
 				saveHighScore(g_highscore);
 			}
 			return 0;
+		}
+		if (g_score >= 6000 && g_score <= 6300) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("Level 1"), lstrlen(TEXT("Level 1")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_score >= 8000 && g_score <= 8300) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("Level 2"), lstrlen(TEXT("Level 2")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_score >= 10000 && g_score <= 10300) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("Level 3"), lstrlen(TEXT("Level 3")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_score >= 20000 && g_score <= 20300) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("Level 4"), lstrlen(TEXT("Level 4")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_score == 60000 && g_score <= 60300) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("Level 5"), lstrlen(TEXT("Level 5")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
+		}
+		if (g_score == 100000 && g_score <= 100300) {
+			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
+			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+			SetTextColor(hdc, RGB(255, 0, 255));
+			SetBkMode(hdc, TRANSPARENT);
+			TextOut(hdc, 650, 400, TEXT("Level 6"), lstrlen(TEXT("Level 6")));
+			SelectObject(hdc, oldFont);
+			DeleteObject(hFont);
 		}
 		if (g_score % 5000 == 0 && g_score != 0) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 650, 500, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
+			TextOut(hdc, 600, 500, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
@@ -523,7 +650,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			DeleteObject(hFont);
 		}
 	
-		for (auto it = enemybullets.begin(); it != enemybullets.end(); ) {
+		for (auto it = enemybullets.begin(); it != enemybullets.end();) {
 			if (g_Paused) return 0;
 			it->x += it->dx;
 			it->y += it->dy;
@@ -613,4 +740,3 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
-
