@@ -335,7 +335,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							}
 						}
 					}
-					if (g_score >= 50000) {
+					if (g_score >= 60000) {
 						e.dy += 0.7;
 						if (rand() % 75 == 0) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
@@ -613,7 +613,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score == 60000 && g_score <= 60300) {
+		if (g_score >= 60000 && g_score <= 60300) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
@@ -622,7 +622,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score == 100000 && g_score <= 100300) {
+		if (g_score >= 100000 && g_score <= 100300) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
@@ -740,3 +740,4 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
+
