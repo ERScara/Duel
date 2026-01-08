@@ -286,7 +286,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						enemybullets.push_back({e.x + 30, e.y + 64, 0, 5});
 						enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 						/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-						if(alive) {
+						if(e.alive) {
 						  PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 						}
 					}
@@ -308,7 +308,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (e.alive) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -319,7 +319,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (e.alive) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -330,7 +330,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (e.alive) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -341,7 +341,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (e.alive) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -352,17 +352,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (e.alive) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
-						}
-					}
-					if (e.alive) {
-						RECT enemyRECT = { e.x, e.y, e.x + 64, e.y + 64 };
-						RECT Intersect;
-						if (IntersectRect(&Intersect, &enemyRECT, &enemyRECT)) {
-							e.alive = true;
-							InvalidateRect(hwnd, NULL, TRUE);
 						}
 					}
 				}
@@ -740,4 +732,5 @@ HRESULT ReadRegKey(HKEY hKey, TCHAR* strName, TCHAR* strValue, DWORD bufferSize,
 	}
 	return S_OK;
 }
+
 
