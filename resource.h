@@ -62,7 +62,7 @@
 #define IDC_CREATE                      1003
 #define IDD_HIGHSCORES                  1004
 #define IDC_BACK                        1005
-#define IDC_CHECK_DPLAY_PROTOCOL        1006
+#define IDC_DELETE_PLAYER               1006
 #define IDC_EDIT_SESSION_NAME           1007
 #define IDD_NAME_DIALOG                 1008
 #define IDC_EDIT1                       1009

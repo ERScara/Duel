@@ -177,6 +177,41 @@ INT CALLBACK CompareScores(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort) {
 	return s2 - s1;
 }
 
+VOID DeleteSelectedPlayer(HWND hList, HWND hDlg) {
+	int iSel = ListView_GetNextItem(hList, -1, LVNI_SELECTED);
+	if (iSel == -1) {
+		MessageBox(hList, L"No player has been selected, please select a player.", L"Delete Player", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	wchar_t name[256];
+	ListView_GetItemText(hList, iSel, 0, name, 256);
+
+	if (wcscmp(name, g_strLocalPlayerName) == 0) {
+		wstring msg = L"Cannot delete the player " + wstring(name, wcslen(name)) + L" because it's currently active."; MessageBox(hDlg, msg.c_str(), L"Warning", MB_OK | MB_ICONWARNING);
+		return;
+	}
+
+	int res = MessageBox(hDlg, (wstring(L"Do you wish to delete player ") + wstring(name, wcslen(name)) + L"?\nThe information cannot be recovered.").c_str(), L"Confirm Deletion", MB_YESNO | MB_ICONQUESTION);
+	if (res == IDYES) {
+		ListView_DeleteItem(hList, iSel);
+		wifstream infile(L"best.dat");
+		vector<pair<wstring, int>> players;
+		wstring pname;
+		int score;
+		while (infile >> pname >> score) {
+			if (pname != name) {
+				players.push_back({ pname, score });
+			}
+		}
+		infile.close();
+		wofstream outfile(L"best.dat", ios::trunc);
+		for (auto& p : players) {
+			outfile << p.first << L" " << p.second << L"\n";
+		}
+		outfile.close();
+	}
+}
+
 INT_PTR CALLBACK HScoreDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) 
 {
 	static vector<Player> players;
@@ -226,6 +261,11 @@ INT_PTR CALLBACK HScoreDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 		return TRUE;
 	}
 	case WM_COMMAND:
+		if (LOWORD(wParam) == IDC_DELETE_PLAYER) {
+			HWND hList = GetDlgItem(hDlg, IDC_LISTSCORES);
+			DeleteSelectedPlayer(hList, hDlg);
+			return TRUE;
+		}
 		if (LOWORD(wParam) == IDOK) {
 			EndDialog(hDlg, LOWORD(wParam));
 			return TRUE;
@@ -284,7 +324,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine
 	int X = (screenWidth - newWidth) / 2;
 	int Y = (screenHeight - newHeight) / 2;
 
-	HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, L"SplashClass", L"Splash", WS_OVERLAPPED | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 300, 500, NULL, NULL, hInstance, NULL);
+	HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, L"SplashClass", L"Duel", WS_OVERLAPPED | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 300, 500, NULL, NULL, hInstance, NULL);
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
@@ -292,7 +332,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine
 
 	INT_PTR res = DialogBox(hInstance, MAKEINTRESOURCE(IDD_NAME_DIALOG), NULL, NameDlgProc);
 	if (res == -1) {
-		MessageBox(NULL, TEXT("Failed to create name dialog."), TEXT("Error"), MB_OK);
+		MessageBox(NULL, TEXT("Failed to create name dialog."), TEXT("Error"), MB_OK | MB_ICONERROR);
 		return -1;
 	}
 	if (res == IDCANCEL) {
@@ -459,7 +499,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_CREATE: {
 		SetTimer(hwnd, 1, 30, NULL);
 		SetTimer(hwnd, 2, 2000, NULL);
-		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 120, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
+		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 110, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
 			NULL);
 		g_highscore = loadHighScore(g_strLocalPlayerName);
 		SetClassLongPtr(hButton, GCLP_HCURSOR, (LONG_PTR)hHand);
@@ -730,6 +770,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			Rectangle(hdc, b.x - 2, b.y - 10, b.x + 2, b.y);
 		}
 		TCHAR scoreBuf[32];
+		TCHAR messageBuf[45];
 		wsprintf(scoreBuf, TEXT("Lives: %d"), g_lives);
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
@@ -750,6 +791,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 80, scoreBuf, lstrlen(scoreBuf));
+		wsprintf(messageBuf, TEXT("The 'Restart' button restarts the game"));
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 148, messageBuf, lstrlen(messageBuf));
+		wsprintf(messageBuf, TEXT("Press 'R' key to restart ship"));
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 168, messageBuf, lstrlen(messageBuf));
+		wsprintf(messageBuf, TEXT("Press 'P' key to pause the game"));
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 180, messageBuf, lstrlen(messageBuf));
+		
 
 		if (g_lives == 0 && !alive) {
 			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
@@ -853,7 +907,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 255));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 600, 300, TEXT("GAME PAUSED"), lstrlen(TEXT("GAME PAUSED")));
+			TextOut(hdc, 600, 230, TEXT("GAME PAUSED"), lstrlen(TEXT("GAME PAUSED")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
