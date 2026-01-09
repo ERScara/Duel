@@ -1,7 +1,12 @@
 #pragma comment(lib, "msimg32.lib")
+#pragma comment(lib, "Comctl32.lib")
 #include "gameproc.h"
 #include "duel.h"
 #include <tchar.h>
+#include <cstdlib>
+#include <sstream>
+#include <iomanip>
+#include <commctrl.h>
 #include <timeapi.h>
 #include <windows.h>
 #include <vector>
@@ -12,6 +17,17 @@
 
 
 using namespace std;
+
+struct PlayerData {
+	TCHAR name[MAX_PLAYER_NAME];
+	int highScore;
+};
+PlayerData g_player;
+
+struct Player {
+	wstring name;
+	int score;
+};
 
 struct Bullet{
 	int x, y;
@@ -60,26 +76,228 @@ BOOL                      g_bReliable;
 BOOL leftPressed = false, rightPressed = false, spacePressed = false, upPressed = false, downPressed = false;
 BOOL                 g_bAsync;
 
+HCURSOR hHand = LoadCursor(NULL, IDC_HAND);
+
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-INT loadHighScore() {
-	ifstream file("best.dat");
-	int g_score = 0;
-	if (file.is_open()) {
-		file >> g_score;
+LRESULT CALLBACK SplashProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	static HBITMAP hBitMap;
+
+	switch (message) {
+	case WM_CREATE:
+		hBitMap = (HBITMAP)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_SPLASH), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+		if (!hBitMap) MessageBox(hWnd, L"Image could not be loaded", L"Error", MB_OK);
+
+		BITMAP bm;
+        if (hBitMap != NULL) {
+            GetObjectW(hBitMap, sizeof(bm), &bm);
+        }
+		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, bm.bmWidth, bm.bmHeight, SWP_NOZORDER);
+		SetTimer(hWnd, 1, 5000, NULL);
+		break;
+	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hWnd, &ps);
+		HDC hdcMem = CreateCompatibleDC(hdc);
+		SelectObject(hdcMem, hBitMap);
+
+		BITMAP bm;
+		GetObject(hBitMap, sizeof(bm), &bm);
+		BitBlt(hdc, 0, 0, bm.bmWidth, bm.bmHeight, hdcMem, 0, 0, SRCCOPY);
+
+		DeleteDC(hdcMem);
+		EndPaint(hWnd, &ps);
+		break;
 	}
-	return g_score;
+	case WM_TIMER:
+		KillTimer(hWnd, 1);
+		DestroyWindow(hWnd);
+		break;
+	case WM_DESTROY:
+		if (hBitMap) DeleteObject(hBitMap);
+		break;
+	}
+	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-VOID saveHighScore(int g_score) {
-	ofstream file("best.dat");
+INT loadHighScore(const TCHAR* playerName) {
+	wifstream file("best.dat");
 	if (file.is_open()) {
-		file << g_score;
+		wstring name;
+		int score = 0;
+		wstring target(playerName);
+		while (file >> name >> score) {
+			if (name == target) {
+				lstrcpy(g_strLocalPlayerName, name.c_str());
+				g_highscore = score;
+				return score;
+			}
+		}
+		lstrcpy(g_strLocalPlayerName, playerName);
+		g_highscore = 0;
+		return 0;
 	}
+}
+
+VOID saveHighScore(const TCHAR* name, int score) {
+	wifstream infile("best.dat");
+	vector<pair<wstring, int>> players;
+	wstring pname;
+	int pscore;
+
+	while (infile >> pname >> pscore) {
+		players.push_back({ pname, pscore });
+	}
+	infile.close();
+
+	bool found = false;
+	for (auto& p : players) {
+		if (p.first == name) {
+			if (score > p.second) {
+				p.second = score;
+			}
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		players.push_back({ name, score });
+	}
+
+	wofstream outfile("best.dat");
+	for (auto& p : players) {
+		outfile << p.first << L"\t" << p.second << L"\n";
+	}
+}
+
+INT CALLBACK CompareScores(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort) {
+	const auto* players = reinterpret_cast<const vector<Player>*>(lParamSort);
+	int s1 = (*players)[static_cast<size_t>(lParam1)].score;
+	int s2 = (*players)[static_cast<size_t>(lParam2)].score;
+	return s2 - s1;
+}
+
+INT_PTR CALLBACK HScoreDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) 
+{
+	static vector<Player> players;
+	switch (message) {
+	case WM_INITDIALOG: {
+		HWND hList = GetDlgItem(hDlg, IDC_LISTSCORES);
+		HCURSOR hHand = LoadCursor(NULL, IDC_HAND);
+		SetClassLongPtr(GetDlgItem(hDlg, IDOK), GCLP_HCURSOR, (LONG_PTR)hHand);
+		
+		INITCOMMONCONTROLSEX icc{ sizeof(icc), ICC_LISTVIEW_CLASSES };
+		InitCommonControlsEx(&icc);
+
+		ListView_SetExtendedListViewStyle(hList, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+
+		LVCOLUMN lvCol{};
+		lvCol.mask = LVCF_TEXT | LVCF_WIDTH;
+
+		lvCol.pszText = (LPWSTR)L"Player";
+		lvCol.cx = 90;
+		ListView_InsertColumn(hList, 0, &lvCol);
+
+		lvCol.pszText = (LPWSTR)L"Score";
+		lvCol.cx = 100;
+		ListView_InsertColumn(hList, 1, &lvCol);
+
+		players.clear();
+		wifstream infile("best.dat");
+		wstring name;
+		int score;
+		while (infile >> name >> score) {
+			players.push_back({ name, score });
+		}
+		infile.close();
+
+		for (size_t i = 0; i < players.size(); ++i) {
+			LVITEM item{};
+			item.mask = LVIF_TEXT | LVIF_PARAM;
+			item.iItem = static_cast<int>(i);
+			item.pszText = const_cast<LPWSTR>(players[i].name.c_str());
+			item.lParam = static_cast<LPARAM>(i);
+			ListView_InsertItem(hList, &item);
+
+			wstring scoreStr = to_wstring(players[i].score);
+			ListView_SetItemText(hList, static_cast<int>(i), 1, const_cast<LPWSTR>(scoreStr.c_str()));
+		}
+		ListView_SortItems(hList, CompareScores, reinterpret_cast<LPARAM>(&players));
+		return TRUE;
+	}
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK) {
+			EndDialog(hDlg, LOWORD(wParam));
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
+}
+
+INT_PTR CALLBACK NameDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message) {
+	case WM_INITDIALOG: {
+		loadHighScore(g_strLocalPlayerName);
+		SetDlgItemText(hDlg, IDC_EDIT1, g_strLocalPlayerName);
+		HCURSOR hHand = LoadCursor(NULL, IDC_HAND);
+		SetClassLongPtr(GetDlgItem(hDlg, IDOK), GCLP_HCURSOR, (LONG_PTR)hHand);
+		SetClassLongPtr(GetDlgItem(hDlg, IDCANCEL), GCLP_HCURSOR, (LONG_PTR)hHand);
+		return TRUE;
+	}
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK) {
+			TCHAR buffer[MAX_PLAYER_NAME];
+			GetDlgItemText(hDlg, IDC_EDIT1, buffer, MAX_PLAYER_NAME);
+			lstrcpy(g_strLocalPlayerName, buffer);
+			lstrcpy(g_player.name, g_strLocalPlayerName);
+			g_player.highScore = g_highscore;
+			saveHighScore(g_strLocalPlayerName, g_highscore);
+			EndDialog(hDlg, IDOK);
+			return TRUE;
+		}
+		if (LOWORD(wParam) == IDCANCEL) {
+			EndDialog(hDlg, IDCANCEL);
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	g_hInst = hInstance;
+
+	WNDCLASS winc = {};
+	winc.lpfnWndProc = SplashProc;
+	winc.hInstance = hInstance;
+	winc.lpszClassName = L"SplashClass";
+	winc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	RegisterClass(&winc);
+
+	RECT rc;
+	SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
+	int newWidth = rc.right - rc.left;
+	int newHeight = rc.bottom - rc.top;
+
+	int X = (screenWidth - newWidth) / 2;
+	int Y = (screenHeight - newHeight) / 2;
+
+	HWND hWnd = CreateWindowEx(WS_EX_TOPMOST, L"SplashClass", L"Splash", WS_OVERLAPPED | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, 300, 500, NULL, NULL, hInstance, NULL);
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
+
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_HIGHSCORES), NULL, HScoreDlgProc);
+
+	INT_PTR res = DialogBox(hInstance, MAKEINTRESOURCE(IDD_NAME_DIALOG), NULL, NameDlgProc);
+	if (res == -1) {
+		MessageBox(NULL, TEXT("Failed to create name dialog."), TEXT("Error"), MB_OK);
+		return -1;
+	}
+	if (res == IDCANCEL) {
+		lstrcpy(g_strLocalPlayerName, TEXT("Player"));
+	}
 
 	WNDCLASS wc = {};
 	wc.lpfnWndProc = WndProc;
@@ -132,7 +350,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine
 		nullptr, nullptr, hInstance, nullptr
 	);
 
-	ShowWindow(g_hwndMain, nCmdShow);
+	ShowWindow(g_hwndMain, SW_MAXIMIZE);
 	MSG msg = {};
 	while (TRUE) {
 		if (g_bIsActive) {
@@ -241,9 +459,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_CREATE: {
 		SetTimer(hwnd, 1, 30, NULL);
 		SetTimer(hwnd, 2, 2000, NULL);
-		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 80, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
+		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 120, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
 			NULL);
-		g_highscore = loadHighScore();
+		g_highscore = loadHighScore(g_strLocalPlayerName);
+		SetClassLongPtr(hButton, GCLP_HCURSOR, (LONG_PTR)hHand);
 		break;
 	}
 	case WM_COMMAND:
@@ -294,16 +513,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						e.dx = -e.dx;
 					}
 					if (g_score >= 6000) {
-						e.dy += 0.2;
 						if (rand() % 10 == 0) {
 							e.dx = (rand() % 2 == 0 ? 2 : -2);
 							e.dx = -e.dx;
-							e.dy = (rand() % 2 == 0 ? 2 : -2);
-							e.dy = -e.dy;
 						}
 					}
-					if (g_score >= 8000) {
-						e.dy += 0.4;
+					if (g_score >= 10000) {
+						e.dy += 0.01;
 						if (rand() % 100 == 0) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
@@ -313,8 +529,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							}
 						}
 					}
-					if (g_score >= 10000) {
-						e.dy += 0.5;
+					if (g_score >= 30000) {
 						if (rand() % 95 == 0) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
@@ -324,8 +539,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							}
 						}
 					}
-					if (g_score >= 20000) {
-						e.dy += 0.6;
+					if (g_score >= 60000) {
 						if (rand() % 80 == 0) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
@@ -335,8 +549,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							}
 						}
 					}
-					if (g_score >= 60000) {
-						e.dy += 0.7;
+					if (g_score >= 80000) {
 						if (rand() % 75 == 0) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
@@ -347,7 +560,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						}
 					}
 					if (g_score >= 100000) {
-						e.dy += 0.8;
 						if (rand() % 60 == 0) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
@@ -534,16 +746,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		SetTextColor(hdc, RGB(0, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 55, scoreBuf, lstrlen(scoreBuf));
-		
+		wsprintf(scoreBuf, TEXT("Player: %s"), g_strLocalPlayerName);
+		SetTextColor(hdc, RGB(0, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 80, scoreBuf, lstrlen(scoreBuf));
+
 		if (g_lives == 0 && !alive) {
 			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 550, 400, TEXT("GAME OVER"), lstrlen(TEXT("GAME OVER")));
+			TextOut(hdc, 500, 300, TEXT("GAME OVER"), lstrlen(TEXT("GAME OVER")));
 			if (g_score > g_highscore) {
 				g_highscore = g_score;
-				saveHighScore(g_highscore);
+				saveHighScore(g_strLocalPlayerName, g_highscore);
 			}
 			if (hdc) {
 				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
@@ -551,12 +767,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score >= 120000) {
+		if (g_score >= 120000 && alive) {
 			HFONT hFont = CreateFont(40, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 600, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
+			TextOut(hdc, 650, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
 			enemybullets.clear();
 			bullets.clear();
 			enemies.clear();
@@ -565,7 +781,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			}
 			if (g_score > g_highscore) {
 				g_highscore = g_score;
-				saveHighScore(g_highscore);
+				saveHighScore(g_strLocalPlayerName, g_highscore);
 			}
 			return 0;
 		}
@@ -578,7 +794,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score >= 8000 && g_score <= 8300) {
+		if (g_score >= 10000 && g_score <= 10300) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
@@ -587,7 +803,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score >= 10000 && g_score <= 10300) {
+		if (g_score >= 30000 && g_score <= 30300) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
@@ -596,7 +812,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score >= 20000 && g_score <= 20300) {
+		if (g_score >= 60000 && g_score <= 60300) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
@@ -605,7 +821,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score >= 60000 && g_score <= 60300) {
+		if (g_score >= 80000 && g_score <= 80300) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
@@ -628,7 +844,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 600, 500, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
+			TextOut(hdc, 620, 500, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
@@ -637,7 +853,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 255));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 650, 400, TEXT("GAME PAUSED"), lstrlen(TEXT("GAME PAUSED")));
+			TextOut(hdc, 600, 300, TEXT("GAME PAUSED"), lstrlen(TEXT("GAME PAUSED")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}

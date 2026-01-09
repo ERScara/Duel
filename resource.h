@@ -25,7 +25,7 @@
 #define IDS_DDUTIL_ERROR_LI             38
 #define IDS_DDUTIL_ERROR_DDCB           39
 #define IDS_DDUTIL_ERROR_CCDC           40
-#define IDS_DSOUND_LOADWAVES            41
+#define IDB_SPLASH                      41
 #define IDS_DSOUND_DUPBUF               42
 #define IDS_DPLAY_ERROR_CP              48
 #define IDS_DPLAY_ERROR_JS              49
@@ -60,20 +60,13 @@
 #define IDC_GAMES_LIST                  1001
 #define IDC_JOIN                        1002
 #define IDC_CREATE                      1003
-#define IDC_CONNECTION_LIST             1004
+#define IDD_HIGHSCORES                  1004
 #define IDC_BACK                        1005
 #define IDC_CHECK_DPLAY_PROTOCOL        1006
 #define IDC_EDIT_SESSION_NAME           1007
+#define IDD_NAME_DIALOG                 1008
+#define IDC_EDIT1                       1009
 #define IDC_DUEL_STATUSTEXT             1010
 #define IDC_SEARCH_CHECK                1013
-#define IDC_LOBBYCONNECTCANCEL          1029
+#define IDC_LISTSCORES                  1029
 #define IDC_WAIT_TEXT                   1035
-
-#ifdef APSTUDIO_INVOKED
-	#idndef APSTUDIO_READONLY_SYMBOLS
-	#define _APS_NEXT_RESOURCE_VALUE        138
-	#define _APS_NEXT_COMMAND_VALUE       40001
-	#define _APS_NEXT_CONTROL_VALUE        1033
-	#define _APS_NEXT_SYMED_VALUE           101
-	#end
-#endif
