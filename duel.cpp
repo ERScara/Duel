@@ -60,28 +60,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine
 	int posX = (screenWidth - winWidth) / 2;
 	int posY = (screenHeight - winHeight) / 2;
 
-    hShipBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\gray_ship.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+    hShipBmp = (HBITMAP)LoadImage(g_hInst, TEXT(".\\gray_ship.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hShipBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
 		wsprintf(buf, TEXT("Ship could not be loaded. Error %lu"), err);
 		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
 	}
-	hEnemyBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\ENE2.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	hEnemyBmp = (HBITMAP)LoadImage(g_hInst, TEXT(".\\ENE2.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hEnemyBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
 		wsprintf(buf, TEXT("Ship could not be loaded. Error %lu"), err);
 		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
 	}
-	hExplosionBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\explode.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	hExplosionBmp = (HBITMAP)LoadImage(g_hInst, TEXT(".\\explode.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hExplosionBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];
 		wsprintf(buf, TEXT("Explosion could not be loaded. Error %lu"), err);
 		MessageBox(g_hwndMain, buf, TEXT("Error"), MB_OK);
 	}
-	hBackgroundBmp = (HBITMAP)LoadImage(g_hInst, TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel\\desert.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	hBackgroundBmp = (HBITMAP)LoadImage(g_hInst, TEXT(".\\desert.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (!hBackgroundBmp) {
 		DWORD err = GetLastError();
 		TCHAR buf[256];

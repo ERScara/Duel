@@ -54,7 +54,7 @@ enum {PS_SPLASH, PS_ACTIVE, PS_RESET };
 #define CY_BITMAP          25
 #define NUM_BITMAPS         2
 
-#define DUEL_KEY (TEXT("C:\\Users\\Esteban\\source\\repos\\NewProjects\\Duel"))
+#define DUEL_KEY (TEXT(".\\Duel"))
 
 VOID ShowError(int err);
 VOID UpdateTitle();
