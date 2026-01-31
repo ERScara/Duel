@@ -50,6 +50,7 @@
 #define IDS_DPLOBBY_ERROR_CONNECT       69
 #define IDS_WIZARD_ERROR_GSG            70
 #define IDS_WIN_ERROR                   71
+#define IDI_DUEL                        101
 #define IDD_MULTIPLAYER_CREATE          104
 #define IDI_MAIN                        104
 #define IDD_CONNECT_STATUS              114

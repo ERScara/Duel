@@ -190,6 +190,9 @@ INT_PTR CALLBACK HScoreDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 	switch (message) {
 	case WM_INITDIALOG: {
 		HWND hList = GetDlgItem(hDlg, IDC_LISTSCORES);
+		HICON hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_DUEL));
+		SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
 		HCURSOR hHand = LoadCursor(NULL, IDC_HAND);
 		SetClassLongPtr(GetDlgItem(hDlg, IDOK), GCLP_HCURSOR, (LONG_PTR)hHand);
 
@@ -254,6 +257,9 @@ INT_PTR CALLBACK NameDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 		loadHighScore(g_strLocalPlayerName);
 		SetDlgItemText(hDlg, IDC_EDIT1, g_strLocalPlayerName);
 		HCURSOR hHand = LoadCursor(NULL, IDC_HAND);
+		HICON hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_DUEL));
+		SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+		SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
 		SetClassLongPtr(GetDlgItem(hDlg, IDOK), GCLP_HCURSOR, (LONG_PTR)hHand);
 		SetClassLongPtr(GetDlgItem(hDlg, IDCANCEL), GCLP_HCURSOR, (LONG_PTR)hHand);
 		return TRUE;

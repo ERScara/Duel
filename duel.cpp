@@ -2,6 +2,7 @@
 #pragma comment(lib, "Comctl32.lib")
 #include "gameproc.h"
 #include "duel.h"
+#include "resource.h"
 #include <tchar.h>
 #include <cstdlib>
 #include <sstream>
@@ -14,16 +15,26 @@
 #include <thread>
 #include <fstream>
 
+ATOM LogoRegisterClass(HINSTANCE hInstance)
+{
+	WNDCLASSEX wcex;
+	wcex.hIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_DUEL), IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR);
+	wcex.hIconSm = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_DUEL), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR);
+	return RegisterClassEx(&wcex);
+}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	g_hInst = hInstance;
 
-	WNDCLASS winc = {};
+	WNDCLASSEX winc = { 0 };
+	winc.cbSize = sizeof(WNDCLASSEX);
 	winc.lpfnWndProc = SplashProc;
 	winc.hInstance = hInstance;
 	winc.lpszClassName = L"SplashClass";
 	winc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	RegisterClass(&winc);
+	winc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DUEL));
+	winc.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DUEL));
+	RegisterClassEx(&winc);
 
 	RECT rc;
 	SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
@@ -48,11 +59,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE pPrevInstance, LPSTR lpCmdLine
 		lstrcpy(g_strLocalPlayerName, TEXT("Player"));
 	}
 
-	WNDCLASS wc = {};
+	WNDCLASSEX wc = { 0 };
+	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.lpfnWndProc = WndProc;
 	wc.hInstance = hInstance;
 	wc.lpszClassName = TEXT("GameWindowClass");
-	RegisterClass(&wc);
+	wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DUEL));
+	wc.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DUEL));
+	RegisterClassEx(&wc);
 
 	int winWidth = 900;
 	int winHeight = 700;
