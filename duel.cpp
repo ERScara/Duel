@@ -549,7 +549,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
 			SetBkMode(hdc, TRANSPARENT);
-			TextOut(hdc, 650, 400, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
+			TextOut(hdc, 500, 300, TEXT("GAME COMPLETED"), lstrlen(TEXT("GAME COMPLETED")));
 			enemybullets.clear();
 			bullets.clear();
 			enemies.clear();
@@ -697,3 +697,4 @@ VOID DoHelp()
 	LoadString(g_hInst, IDS_DUEL_HELP, strHelpMsg, MAX_HELPMSG);
 	MessageBox(g_hwndMain, strHelpMsg, TEXT("DUEL"), MB_OK);
 }
+
