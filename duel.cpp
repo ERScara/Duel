@@ -15,6 +15,8 @@
 #include <thread>
 #include <fstream>
 
+static int lastScore = 0;
+
 ATOM LogoRegisterClass(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex;
@@ -222,23 +224,53 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_CREATE: {
 		SetTimer(hwnd, 1, 30, NULL);
 		SetTimer(hwnd, 2, 2000, NULL);
-		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 110, 100, 30, hwnd, (HMENU)1, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE),
-			NULL);
+		HWND hButton = CreateWindow(TEXT("BUTTON"), TEXT("Restart"), WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 1300, 20, 100, 30, hwnd, (HMENU)1, 
+			(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), NULL);
+		HWND hSoundBtn = CreateWindow(TEXT("BUTTON"), TEXT(""), WS_VISIBLE | WS_CHILD | BS_OWNERDRAW | BS_PUSHBUTTON , 1300, 70, 100, 30, hwnd, (HMENU)ID_SOUND_BUTTON,
+			(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), NULL);
+		g_hwndSoundBtn = hSoundBtn;
 		g_highscore = loadHighScore(g_strLocalPlayerName);
 		SetClassLongPtr(hButton, GCLP_HCURSOR, (LONG_PTR)hHand);
+		SetClassLongPtr(hSoundBtn, GCLP_HCURSOR, (LONG_PTR)hHand);
 		break;
 	}
+	case WM_DRAWITEM:
+	{
+		LPDRAWITEMSTRUCT pdis = (LPDRAWITEMSTRUCT)lParam;
+		if (pdis->CtlID == ID_SOUND_BUTTON) {
+			FillRect(pdis->hDC, &pdis->rcItem, (HBRUSH)(COLOR_BTNFACE + 1));
+			UINT edgeState = (pdis->itemState & ODS_SELECTED) ? EDGE_SUNKEN : EDGE_RAISED;
+			DrawEdge(pdis->hDC, &pdis->rcItem, edgeState, BF_RECT);
+			SetBkMode(pdis->hDC, TRANSPARENT);
+			SetTextColor(pdis->hDC, RGB(0, 0, 0));
+			LPCTSTR text = g_bSoundMuted ? TEXT("Sound on") : TEXT("Sound off");
+			RECT rcText = pdis->rcItem;
+			rcText.left += 5; rcText.top += 2; rcText.right -= 5; rcText.bottom -= 2;
+			DrawText(pdis->hDC, text, -1, &rcText, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+			return TRUE;
+		}
+		break;
+	}		
 	case WM_COMMAND:
 		if (LOWORD(wParam) == 1) {
 			alive = true;
 			g_score = 0;
+			g_level = 0;
 			g_lives = 5;
 			bullets.clear();
 			enemies.clear();
 			enemybullets.clear();
 		    InvalidateRect(hwnd, NULL, TRUE);
 		}
+		else if (LOWORD(wParam) == ID_SOUND_BUTTON) {
+			g_bSoundMuted = !g_bSoundMuted;
+			PlaySound(NULL, NULL, SND_PURGE);
+			InvalidateRect(g_hwndSoundBtn, NULL, TRUE);
+			UpdateWindow(g_hwndSoundBtn);
+			break;
+		}
 		break;
+
 	case WM_TIMER: {
 		BITMAP bmShip;
 		GetObject(hShipBmp, sizeof(bmShip), &bmShip);
@@ -268,7 +300,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						enemybullets.push_back({e.x + 30, e.y + 64, 0, 5});
 						enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 						/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-						if(alive) {
+						if(alive && !g_bSoundMuted) {
 						  PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 						}
 					}
@@ -287,7 +319,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (alive && !g_bSoundMuted) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -297,7 +329,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (alive && !g_bSoundMuted) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -307,7 +339,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (alive && !g_bSoundMuted) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -317,7 +349,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (alive && !g_bSoundMuted) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -327,7 +359,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 							enemybullets.push_back({ e.x + 30, e.y + 64, 0, 5 });
 							enemybullets.push_back({ e.x + 37, e.y + 64, 0, 5 });
 							/*enemybullets.push_back({e.x + 32, e.y + 64, 0, 5});*/
-							if (alive) {
+							if (alive && !g_bSoundMuted) {
 								PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC);
 							}
 						}
@@ -348,9 +380,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 					RECT Intersect;
 					if (IntersectRect(&Intersect, &enemyRECT, &shipRECT)) {
 						e.alive = false;
-						alive = false;
+						alive = false;	
 						leftPressed = rightPressed = upPressed = downPressed = false;
-						PlaySound(TEXT("bangbang.wav"), NULL, SND_FILENAME | SND_ASYNC);
+						if (!g_bSoundMuted) {
+						   PlaySound(TEXT("bangbang.wav"), NULL, SND_FILENAME | SND_ASYNC);
+						}
 						InvalidateRect(hwnd, NULL, TRUE);
 					}
 				}
@@ -396,7 +430,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (wParam == VK_RIGHT) rightPressed = true;
 		if (wParam == VK_UP) upPressed = true;
 		if (wParam == VK_DOWN) downPressed = true;
-		if (wParam == VK_SPACE) { PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC); spacePressed = true; };
+		if (wParam == VK_SPACE && !g_bSoundMuted) { PlaySound(TEXT("bfire.wav"), NULL, SND_FILENAME | SND_ASYNC); spacePressed = true;};
 		return 0;
 	case WM_KEYUP:
 		if (!alive || g_Paused) return 0;
@@ -443,8 +477,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				if (alive) {
 					alive = false;
 					leftPressed = rightPressed = upPressed = downPressed = false;
+					if (!g_bSoundMuted) {
+						PlaySound(TEXT("lboom.wav"), NULL, SND_FILENAME | SND_ASYNC);
+					}
 					it = bullets.erase(it);
-					PlaySound(TEXT("lboom.wav"), NULL, SND_FILENAME | SND_ASYNC);
 					continue;
 				}
 			}
@@ -467,10 +503,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 						e.alive = false;
 						g_score += 100;
 						it = bullets.erase(it);
-						PlaySound(TEXT("p_bang.wav"), NULL, SND_FILENAME | SND_ASYNC);
-						if (g_score % 5000 == 0) {
+						if (!g_bSoundMuted) {
+							PlaySound(TEXT("p_bang.wav"), NULL, SND_FILENAME | SND_ASYNC);
+						}
+						if (g_score % 5000 == 0 && g_score > lastScore) {
 							g_lives++;
-							PlaySound(TEXT("bounce.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOWAIT);
+							g_bShowExtraLifeMsg = true;
+							g_extraLifeTimer = 90;
+							lastScore = g_score;
+							if (!g_bSoundMuted) {
+								PlaySound(TEXT("bounce.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOWAIT);
+							}
 						}
 					}
 					else {
@@ -495,38 +538,41 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		TCHAR scoreBuf[32];
 		TCHAR messageBuf[45];
 		wsprintf(scoreBuf, TEXT("Lives: %d"), g_lives);
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 10, scoreBuf, lstrlen(scoreBuf));
 		wsprintf(scoreBuf, TEXT("Points: %d"), g_score);
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 25, scoreBuf, lstrlen(scoreBuf));
 		wsprintf(scoreBuf, TEXT("No. of ships destroyed: %d"), g_score / enemies_killed);
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 40, scoreBuf, lstrlen(scoreBuf));
 		wsprintf(scoreBuf, TEXT("Best: %d"), g_highscore);
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 55, scoreBuf, lstrlen(scoreBuf));
 		wsprintf(scoreBuf, TEXT("Player: %s"), g_strLocalPlayerName);
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 80, scoreBuf, lstrlen(scoreBuf));
 		wsprintf(messageBuf, TEXT("The 'Restart' button restarts the game"));
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 141, messageBuf, lstrlen(messageBuf));
 		wsprintf(messageBuf, TEXT("Press 'R' key to restart the ship"));
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 162, messageBuf, lstrlen(messageBuf));
 		wsprintf(messageBuf, TEXT("Press 'P' key to pause the game"));
-		SetTextColor(hdc, RGB(0, 255, 0));
+		SetTextColor(hdc, RGB(200, 255, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		TextOut(hdc, 10, 180, messageBuf, lstrlen(messageBuf));
-		
+		wsprintf(messageBuf, TEXT("Level: %d"), g_level);
+		SetTextColor(hdc, RGB(200, 255, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		TextOut(hdc, 10, 220, messageBuf, lstrlen(messageBuf));
 
 		if (g_lives == 0 && !alive) {
 			HFONT hFont = CreateFont(72, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
@@ -538,7 +584,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 				g_highscore = g_score;
 				saveHighScore(g_strLocalPlayerName, g_highscore);
 			}
-			if (hdc) {
+			if (hdc && !g_bSoundMuted) {
 				PlaySound(TEXT("shield.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 			}
 			SelectObject(hdc, oldFont);
@@ -553,7 +599,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			enemybullets.clear();
 			bullets.clear();
 			enemies.clear();
-			if (hdc) {
+			if (hdc && !g_bSoundMuted) {
 				PlaySound(TEXT("level.wav"), NULL, SND_FILENAME | SND_ASYNC | SND_NOSTOP);
 			}
 			if (g_score > g_highscore) {
@@ -567,6 +613,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
 			SetBkMode(hdc, TRANSPARENT);
+		    g_level = 1;
 			TextOut(hdc, 650, 400, TEXT("Level 1"), lstrlen(TEXT("Level 1")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
@@ -576,6 +623,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
 			SetBkMode(hdc, TRANSPARENT);
+			g_level = 2;
 			TextOut(hdc, 650, 400, TEXT("Level 2"), lstrlen(TEXT("Level 2")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
@@ -585,6 +633,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
 			SetBkMode(hdc, TRANSPARENT);
+			g_level = 3;
 			TextOut(hdc, 650, 400, TEXT("Level 3"), lstrlen(TEXT("Level 3")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
@@ -594,6 +643,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
 			SetBkMode(hdc, TRANSPARENT);
+			g_level = 4;
 			TextOut(hdc, 650, 400, TEXT("Level 4"), lstrlen(TEXT("Level 4")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
@@ -603,6 +653,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
 			SetBkMode(hdc, TRANSPARENT);
+			g_level = 5;
 			TextOut(hdc, 650, 400, TEXT("Level 5"), lstrlen(TEXT("Level 5")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
@@ -612,11 +663,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(255, 0, 255));
 			SetBkMode(hdc, TRANSPARENT);
+			g_level = 6;
 			TextOut(hdc, 650, 400, TEXT("Level 6"), lstrlen(TEXT("Level 6")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
 		}
-		if (g_score % 5000 == 0 && g_score != 0) {
+		if (g_bShowExtraLifeMsg && g_score != 0 && g_extraLifeTimer > 0) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
 			HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 			SetTextColor(hdc, RGB(0, 255, 0));
@@ -624,6 +676,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			TextOut(hdc, 620, 500, TEXT("+1 Extra Life!"), lstrlen(TEXT("+1 Extra Life!")));
 			SelectObject(hdc, oldFont);
 			DeleteObject(hFont);
+			g_extraLifeTimer--;
+			if (g_extraLifeTimer <= 0) {
+				g_bShowExtraLifeMsg = false;
+			}
 		}
 		if (g_Paused) {
 			HFONT hFont = CreateFont(30, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
@@ -644,7 +700,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			RECT Intersect;
 			if (alive && IntersectRect(&Intersect, &shipRECT, &bulletRECT)) {
 				alive = false;
-				PlaySound(TEXT("lboom.wav"), NULL, SND_FILENAME | SND_ASYNC);
+				if (!g_bSoundMuted) {
+					PlaySound(TEXT("lboom.wav"), NULL, SND_FILENAME | SND_ASYNC);
+				}
 				it = enemybullets.erase(it);
 				continue;
 			}
@@ -697,4 +755,3 @@ VOID DoHelp()
 	LoadString(g_hInst, IDS_DUEL_HELP, strHelpMsg, MAX_HELPMSG);
 	MessageBox(g_hwndMain, strHelpMsg, TEXT("DUEL"), MB_OK);
 }
-

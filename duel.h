@@ -43,6 +43,7 @@ enum {PS_SPLASH, PS_ACTIVE, PS_RESET };
 
 #define RECEIVE_TIMER_ID    1
 #define RECEiVE_TIMEOUT  1000
+#define ID_SOUND_BUTTON  1001
 
 #define ENUM_TIMER_ID       2
 #define ENUM_TIMEOUT     2000

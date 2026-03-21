@@ -15,23 +15,27 @@
 
 using namespace std;
 
-
 PlayerData g_player;
 
 Enemy enemy = { 200, 50, 3, 0, true };
 
 TCHAR g_strLocalPlayerName[MAX_PLAYER_NAME];
 
-HINSTANCE                    g_hInst;
-HWND                      g_hwndMain;
+HINSTANCE                     g_hInst;
+HWND                       g_hwndMain;
+HWND                   g_hwndSoundBtn;
 int shipX = 400, shipY = 500;
 int g_score = 0;
+bool g_bSoundMuted = false;
+bool g_bShowExtraLifeMsg = false;
+int g_extraLifeTimer = 0;
+int g_level = 0;
 int g_lives = 5;
 int enemies_killed = 100;
 int screenWidth = GetSystemMetrics(SM_CXSCREEN);
 int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 std::vector<Bullet>           bullets;
-std::vector<EnemyBullet>   enemybullets;
+std::vector<EnemyBullet> enemybullets;
 std::vector<Enemy>            enemies;
 BOOL                    g_bHostPlayer;
 HBITMAP                      hShipBmp;
@@ -48,8 +52,7 @@ BOOL                 g_Paused = false;
 BOOL                     alive = true;
 BOOL                      g_bReliable;
 BOOL leftPressed = false, rightPressed = false, spacePressed = false, upPressed = false, downPressed = false;
-BOOL                 g_bAsync;
-
+BOOL                         g_bAsync;
 HCURSOR hHand = LoadCursor(NULL, IDC_HAND);
 
 LRESULT CALLBACK SplashProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
